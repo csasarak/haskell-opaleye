@@ -37,6 +37,7 @@ data SqlRangeBound = Inclusive SqlExpr | Exclusive SqlExpr | PosInfinity | NegIn
 data SqlDistinct = SqlDistinct | SqlNotDistinct
                  deriving Show
 
+-- TODO: change to use text or bytestring
 -- | Expressions in SQL statements.
 data SqlExpr = ColumnSqlExpr  SqlColumn
              | CompositeSqlExpr SqlExpr String
