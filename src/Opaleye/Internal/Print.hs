@@ -1,4 +1,7 @@
-module Opaleye.Internal.Print where
+module Opaleye.Internal.Print (ppSql
+                              , ppInsertReturning
+                              , ppDeleteReturning
+                              , ppUpdateReturning) where
 
 import           Prelude hiding (product, (++))
 
@@ -186,4 +189,3 @@ ppDeleteReturning (Sql.Returning delete returnExprs) =
   HPrint.ppDelete delete
   $$ text "RETURNING"
   <+> HPrint.commaV HPrint.ppSqlExpr (NEL.toList returnExprs)
-
