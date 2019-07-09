@@ -4,6 +4,7 @@
 
 module Opaleye.Internal.HaskellDB.Sql.Generate (SqlGenerator(..)) where
 
+import Data.Text
 import Opaleye.Internal.HaskellDB.PrimQuery
 import Opaleye.Internal.HaskellDB.Sql
 
@@ -15,8 +16,8 @@ data SqlGenerator = SqlGenerator
      sqlDelete      :: SqlTable -> [PrimExpr] -> SqlDelete,
      sqlInsert      :: SqlTable -> [Attribute] -> NEL.NonEmpty [PrimExpr] -> Maybe OnConflict -> SqlInsert,
      sqlExpr        :: PrimExpr -> SqlExpr,
-     sqlLiteral     :: Literal -> String,
+     sqlLiteral     :: Literal -> Text,
      -- | Turn a string into a quoted string. Quote characters
      -- and any escaping are handled by this function.
-     sqlQuote       :: String -> String
+     sqlQuote       :: Text -> Text
     }

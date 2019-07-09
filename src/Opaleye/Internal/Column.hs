@@ -2,7 +2,8 @@
 
 module Opaleye.Internal.Column where
 
-import Data.String
+import Data.Text hiding (map)
+import Data.String (IsString(..))
 
 import qualified Opaleye.Internal.HaskellDB.PrimQuery as HPQ
 
@@ -38,12 +39,15 @@ unsafeCoerceColumn (Column e) = Column e
 -- @CAST( ... AS ... )@ operations.  This is safe for some
 -- conversions, such as uuid to text.
 unsafeCast :: String -> Column a -> Column b
-unsafeCast = mapColumn . HPQ.CastExpr
+unsafeCast n = unsafeCastText (pack n)
+
+unsafeCastText :: Text -> Column a -> Column b
+unsafeCastText n = mapColumn (HPQ.CastExpr n)
   where
     mapColumn :: (HPQ.PrimExpr -> HPQ.PrimExpr) -> Column c -> Column a
     mapColumn primExpr c = Column (primExpr (unColumn c))
 
-unsafeCompositeField :: Column a -> String -> Column b
+unsafeCompositeField :: Column a -> Text -> Column b
 unsafeCompositeField (Column e) fieldName =
   Column (HPQ.CompositeExpr e fieldName)
 
@@ -106,12 +110,9 @@ class PGIntegral a
 type SqlIntegral = PGIntegral
 
 class PGString a where
-    pgFromString :: String -> Column a
+    pgFromString :: Text -> Column a
     pgFromString = sqlFromString
 
-    sqlFromString :: String -> Column a
+    sqlFromString :: Text -> Column a
 
 type SqlString = PGString
-
-instance SqlString a => IsString (Column a) where
-  fromString = sqlFromString

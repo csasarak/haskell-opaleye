@@ -27,6 +27,7 @@ import qualified Data.Profunctor.Product as PP
 import           Data.Profunctor.Product (empty, (***!))
 import qualified Data.Profunctor.Product.Default as D
 
+import qualified Data.Text as SText
 import qualified Data.Aeson as Ae
 import qualified Data.CaseInsensitive as CI
 import qualified Data.Text as ST
@@ -327,11 +328,11 @@ jsonFieldTypeParser :: SBS.ByteString -> FieldParser String
 jsonFieldTypeParser jsonTypeName field mData = do
     ti <- typeInfo field
     if TI.typname ti == jsonTypeName
-       then convert
+       then convert 
        else returnError Incompatible field "types incompatible"
   where
     convert = case mData of
-        Just bs -> pure $ IPT.strictDecodeUtf8 bs
+        Just bs -> (pure . SText.unpack . IPT.strictDecodeUtf8) bs
         _       -> returnError UnexpectedNull field ""
 
 -- }

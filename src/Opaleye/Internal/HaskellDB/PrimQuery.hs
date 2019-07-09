@@ -8,14 +8,16 @@ import qualified Opaleye.Internal.Tag as T
 import Data.ByteString (ByteString)
 import qualified Data.List.NonEmpty as NEL
 import qualified Data.Scientific as Sci
+import Data.Text
+import qualified Data.Text.Lazy as LText
 
-type TableName  = String
-type Attribute  = String
-type Name = String
+type TableName  = Text
+type Attribute  = Text
+type Name = Text
 type Scheme     = [Attribute]
 type Assoc      = [(Attribute,PrimExpr)]
 
-data Symbol = Symbol String T.Tag deriving (Read, Show)
+data Symbol = Symbol Text T.Tag deriving (Read, Show)
 
 data PrimExpr   = AttrExpr  Symbol
                 | BaseTableAttrExpr Attribute
@@ -35,25 +37,26 @@ data PrimExpr   = AttrExpr  Symbol
                                     -- here.  Perhaps a special type is
                                     -- needed for insert expressions.
                 | ArrayExpr [PrimExpr] -- ^ ARRAY[..]
-                | RangeExpr String BoundExpr BoundExpr
+                | RangeExpr Text BoundExpr BoundExpr
                 | ArrayIndex PrimExpr PrimExpr
                 deriving (Read,Show)
 
 data Literal = NullLit
              | DefaultLit            -- ^ represents a default value
              | BoolLit Bool
-             | StringLit String
+             | StringLit Text
+             | LazyStringLit LText.Text
              | ByteStringLit ByteString
              | IntegerLit Integer
              | DoubleLit Double
              | NumericLit Sci.Scientific
-             | OtherLit String       -- ^ used for hacking in custom SQL
+             | OtherLit Text       -- ^ used for hacking in custom SQL
                deriving (Read,Show)
 
 data BinOp      = (:==) | (:<) | (:<=) | (:>) | (:>=) | (:<>)
                 | OpAnd | OpOr
                 | OpLike | OpILike | OpIn
-                | OpOther String
+                | OpOther Text
 
                 | (:||)
                 | (:+) | (:-) | (:*) | (:/) | OpMod
@@ -73,13 +76,13 @@ data UnOp = OpNot
           | OpNegate
           | OpLower
           | OpUpper
-          | UnOpOther String
+          | UnOpOther Text
           deriving (Show,Read)
 
 data AggrOp     = AggrCount | AggrSum | AggrAvg | AggrMin | AggrMax
                 | AggrStdDev | AggrStdDevP | AggrVar | AggrVarP
                 | AggrBoolOr | AggrBoolAnd | AggrArr | AggrStringAggr PrimExpr
-                | AggrOther String
+                | AggrOther Text
                 deriving (Show,Read)
 
 data AggrDistinct = AggrDistinct | AggrAll

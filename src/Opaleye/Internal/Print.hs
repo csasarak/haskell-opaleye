@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Opaleye.Internal.Print (ppSql
                               , ppInsertReturning
                               , ppDeleteReturning
@@ -25,7 +26,7 @@ import qualified Data.Text          as ST
 import           Data.String ()
 import           Data.Monoid ((<>))
 
-type TableAlias = String
+type TableAlias = ST.Text
 type Doc = HSql.Doc
 
 -- convenience definitions/aliases
@@ -33,7 +34,7 @@ type Doc = HSql.Doc
 a $$ b = a <> indent 4 b -- possibly use 'fuse'
 infixl 5 $$
 
-text :: Pretty a => a -> Doc
+text :: ST.Text -> Doc
 text = pretty
 
 empty :: Monoid m => m
@@ -94,11 +95,9 @@ ppSelectLabel :: Label -> Doc
 ppSelectLabel l = text "/*" <+> text (defuseComments (Sql.lLabel l)) <+> text "*/"
                   $$ ppSql (Sql.lSelect l)
   where
-    defuseComments = ST.unpack
-                   . ST.replace (ST.pack "--") (ST.pack " - - ")
+    defuseComments = ST.replace (ST.pack "--") (ST.pack " - - ")
                    . ST.replace (ST.pack "/*") (ST.pack " / * ")
                    . ST.replace (ST.pack "*/") (ST.pack " * / ")
-                   . ST.pack
 
 ppSelectExists :: Exists -> Doc
 ppSelectExists v =
@@ -131,7 +130,7 @@ ppTables [] = empty
 ppTables ts = text "FROM" <+> HPrint.commaV ppTable (zipWith tableAlias [1..] ts)
 
 tableAlias :: Int -> Select -> (TableAlias, Select)
-tableAlias i select = ("T" ++ show i, select)
+tableAlias i select = ("T" <> (ST.pack . show) i, select)
 
 -- TODO: duplication with ppSql
 ppTable :: (TableAlias, Select) -> Doc
@@ -151,11 +150,11 @@ ppGroupBy (Just xs) = HPrint.ppGroupBy (NEL.toList xs)
 
 ppLimit :: Maybe Int -> Doc
 ppLimit Nothing = empty
-ppLimit (Just n) = text ("LIMIT " ++ show n)
+ppLimit (Just n) = text ("LIMIT " <> (ST.pack . show) n)
 
 ppOffset :: Maybe Int -> Doc
 ppOffset Nothing = empty
-ppOffset (Just n) = text ("OFFSET " ++ show n)
+ppOffset (Just n) = text ("OFFSET " <> (ST.pack . show) n)
 
 ppValues :: [[HSql.SqlExpr]] -> Doc
 ppValues v = HPrint.ppAs (Just "V") (parens (text "VALUES" $$ HPrint.commaV ppValuesRow v))

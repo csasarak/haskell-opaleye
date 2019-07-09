@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Opaleye.Internal.Sql where
 
 import           Prelude hiding (product)
@@ -15,6 +16,7 @@ import qualified Opaleye.Internal.Tag as T
 import qualified Data.List.NonEmpty as NEL
 import qualified Data.Maybe as M
 import qualified Data.Void as V
+import qualified Data.Text as T
 
 import qualified Control.Arrow as Arr
 
@@ -69,7 +71,7 @@ data JoinType = LeftJoin | RightJoin | FullJoin deriving Show
 data BinOp = Except | ExceptAll | Union | UnionAll | Intersect | IntersectAll deriving Show
 
 data Label = Label {
-  lLabel  :: String,
+  lLabel  :: T.Text,
   lSelect :: Select
 } deriving Show
 
@@ -106,7 +108,7 @@ sql (pes, pq, t) = SelectFrom $ newSelect { attrs = SelectAttrs (ensureColumns (
                                           , tables = [pqSelect] }
   where pqSelect = PQ.foldPrimQuery sqlQueryGenerator pq
         makeAttrs = flip (zipWith makeAttr) [1..]
-        makeAttr pe i = sqlBinding (Symbol ("result" ++ show (i :: Int)) t, pe)
+        makeAttr pe i = sqlBinding (Symbol ("result" <> (T.pack . show) (i :: Int)) t, pe)
 
 unit :: Select
 unit = SelectFrom newSelect { attrs  = SelectAttrs (ensureColumns []) }
@@ -200,7 +202,7 @@ values :: [Symbol] -> NEL.NonEmpty [HPQ.PrimExpr] -> Select
 values columns pes = SelectValues Values { vAttrs  = SelectAttrs (mkColumns columns)
                                          , vValues = NEL.toList ((fmap . map) sqlExpr pes) }
   where mkColumns = ensureColumns . zipWith (flip (curry (sqlBinding . Arr.second mkColumn))) [1..]
-        mkColumn i = (HPQ.BaseTableAttrExpr . ("column" ++) . show) (i::Int)
+        mkColumn i = (HPQ.BaseTableAttrExpr . ("column" <>) . T.pack . show) (i::Int)
 
 binary :: PQ.BinOp -> [(Symbol, (HPQ.PrimExpr, HPQ.PrimExpr))]
        -> (Select, Select) -> Select
@@ -259,7 +261,7 @@ ensureColumnsGen :: (HSql.SqlExpr -> a)
 ensureColumnsGen f = M.fromMaybe (return . f $ HSql.ConstSqlExpr "0")
                    . NEL.nonEmpty
 
-label :: String -> Select -> Select
+label :: T.Text -> Select -> Select
 label l s = SelectLabel (Label l s)
 
 -- Very similar to 'baseTable'

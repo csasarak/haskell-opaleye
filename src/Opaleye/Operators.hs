@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 -- | Operators on 'Column's.  Please note that numeric 'Column' types
 -- are instances of 'Num', so you can use '*', '/', '+', '-' on them.

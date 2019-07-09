@@ -7,6 +7,7 @@ import qualified Opaleye.Internal.Column as IC
 import qualified Opaleye.Internal.PackMap as PM
 import qualified Opaleye.Internal.Unpackspec as U
 
+import           Data.Text
 import           Data.Profunctor (Profunctor, dimap)
 import           Data.Profunctor.Product (ProductProfunctor, empty, (***!))
 import qualified Data.Profunctor.Product as PP
@@ -39,7 +40,7 @@ runColumnMaker = U.runUnpackspec
 -- There's surely a way of simplifying this implementation
 tableColumn :: ViewColumnMaker String (C.Column a)
 tableColumn = ViewColumnMaker
-              (PM.PackMap (\f s -> fmap (const (mkColumn s)) (f ())))
+              (PM.PackMap (\f s -> fmap (const (mkColumn (pack s))) (f ())))
   where mkColumn = IC.Column . HPQ.BaseTableAttrExpr
 
 instance Default ViewColumnMaker String (C.Column a) where

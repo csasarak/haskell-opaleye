@@ -1,4 +1,5 @@
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Opaleye.Internal.Aggregate where
 
 import           Control.Applicative (Applicative, pure, (<*>))

@@ -5,6 +5,7 @@
 module Opaleye.Internal.HaskellDB.Sql where
 
 
+import Data.Text
 import qualified Data.List.NonEmpty as NEL
 import qualified Data.Text.Prettyprint.Doc (Doc)
 
@@ -13,14 +14,14 @@ import qualified Data.Text.Prettyprint.Doc (Doc)
 -----------------------------------------------------------
 
 data SqlTable = SqlTable
-  { sqlTableSchemaName :: Maybe String
-  , sqlTableName       :: String
+  { sqlTableSchemaName :: Maybe Text
+  , sqlTableName       :: Text
   } deriving Show
 
-newtype SqlColumn = SqlColumn String deriving Show
+newtype SqlColumn = SqlColumn Text deriving Show
 
 -- | A valid SQL name for a parameter.
-type SqlName = String
+type SqlName = Text
 
 data SqlOrderNulls = SqlNullsFirst | SqlNullsLast
                    deriving Show
@@ -40,23 +41,23 @@ data SqlDistinct = SqlDistinct | SqlNotDistinct
 
 -- | Expressions in SQL statements.
 data SqlExpr = ColumnSqlExpr  SqlColumn
-             | CompositeSqlExpr SqlExpr String
-             | BinSqlExpr     String SqlExpr SqlExpr
+             | CompositeSqlExpr SqlExpr Text
+             | BinSqlExpr     Text SqlExpr SqlExpr
              | SubscriptSqlExpr SqlExpr SqlExpr
-             | PrefixSqlExpr  String SqlExpr
-             | PostfixSqlExpr String SqlExpr
-             | FunSqlExpr     String [SqlExpr]
-             | AggrFunSqlExpr String [SqlExpr] [(SqlExpr, SqlOrder)] SqlDistinct -- ^ Aggregate functions separate from normal functions.
-             | ConstSqlExpr   String
+             | PrefixSqlExpr  Text SqlExpr
+             | PostfixSqlExpr Text SqlExpr
+             | FunSqlExpr     Text [SqlExpr]
+             | AggrFunSqlExpr Text [SqlExpr] [(SqlExpr, SqlOrder)] SqlDistinct -- ^ Aggregate functions separate from normal functions.
+             | ConstSqlExpr   Text
              | CaseSqlExpr    (NEL.NonEmpty (SqlExpr,SqlExpr)) SqlExpr
              | ListSqlExpr    (NEL.NonEmpty SqlExpr)
              | ParamSqlExpr (Maybe SqlName) SqlExpr
              | PlaceHolderSqlExpr
              | ParensSqlExpr SqlExpr
-             | CastSqlExpr String SqlExpr
+             | CastSqlExpr Text SqlExpr
              | DefaultSqlExpr
              | ArraySqlExpr [SqlExpr]
-             | RangeSqlExpr String SqlRangeBound SqlRangeBound
+             | RangeSqlExpr Text SqlRangeBound SqlRangeBound
   deriving Show
 
 -- | Data type for SQL UPDATE statements.

@@ -1,9 +1,12 @@
+{-# LANGUAGE OverloadedStrings #-}
 -- Copyright   :  Daan Leijen (c) 1999, daan@cs.uu.nl
 --                HWT Group (c) 2003, haskelldb-users@lists.sourceforge.net
 -- License     :  BSD-style
 
 module Opaleye.Internal.HaskellDB.Sql.Default  where
 
+import Data.Text as T hiding (map)
+import Data.Text.Encoding
 import Control.Applicative ((<$>))
 
 import Opaleye.Internal.HaskellDB.PrimQuery
@@ -157,7 +160,7 @@ defaultSqlExpr gen expr =
                         in RangeSqlExpr t (bound l) (bound r)
       ArrayIndex e1 e2 -> SubscriptSqlExpr (ParensSqlExpr $ sqlExpr gen e1) (ParensSqlExpr $ sqlExpr gen e2)
 
-showBinOp :: BinOp -> String
+showBinOp :: BinOp -> Text
 showBinOp  (:==)        = "="
 showBinOp  (:<)         = "<"
 showBinOp  (:<=)        = "<="
@@ -200,7 +203,7 @@ showBinOp  (:-|-)       = "-|-"
 
 data UnOpType = UnOpFun | UnOpPrefix | UnOpPostfix
 
-sqlUnOp :: UnOp -> (String,UnOpType)
+sqlUnOp :: UnOp -> (Text,UnOpType)
 sqlUnOp  OpNot         = ("NOT", UnOpPrefix)
 sqlUnOp  OpIsNull      = ("IS NULL", UnOpPostfix)
 sqlUnOp  OpIsNotNull   = ("IS NOT NULL", UnOpPostfix)
@@ -212,7 +215,7 @@ sqlUnOp  OpUpper       = ("UPPER", UnOpFun)
 sqlUnOp  (UnOpOther s) = (s, UnOpFun)
 
 
-showAggrOp :: AggrOp -> String
+showAggrOp :: AggrOp -> Text
 showAggrOp AggrCount          = "COUNT"
 showAggrOp AggrSum            = "SUM"
 showAggrOp AggrAvg            = "AVG"
@@ -229,36 +232,37 @@ showAggrOp (AggrStringAggr _) = "STRING_AGG"
 showAggrOp (AggrOther s)      = s
 
 
-defaultSqlLiteral :: SqlGenerator -> Literal -> String
+defaultSqlLiteral :: SqlGenerator -> Literal -> Text
 defaultSqlLiteral _ l =
     case l of
-      NullLit       -> "NULL"
-      DefaultLit    -> "DEFAULT"
-      BoolLit True  -> "TRUE"
-      BoolLit False -> "FALSE"
+      NullLit         -> "NULL"
+      DefaultLit      -> "DEFAULT"
+      BoolLit True    -> "TRUE"
+      BoolLit False   -> "FALSE"
       ByteStringLit s
-                    -> binQuote s
-      StringLit s   -> quote s
-      IntegerLit i  -> show i
-      DoubleLit d   -> if isNaN d then "'NaN'"
-                       else if isInfinite d && d < 0 then "'-Infinity'"
-                       else if isInfinite d && d > 0 then "'Infinity'"
-                       else show d
-      NumericLit n  -> LT.unpack . LT.toLazyText . Sci.scientificBuilder $ n
-      OtherLit o    -> o
+                      -> binQuote s
+      StringLit s     -> quote s
+      LazyStringLit s -> quote . LT.toStrict $ s
+      IntegerLit i    -> pack . show $ i
+      DoubleLit d     -> if isNaN d then "'NaN'"
+                         else if isInfinite d && d < 0 then "'-Infinity'"
+                         else if isInfinite d && d > 0 then "'Infinity'"
+                         else pack . show $ d
+      NumericLit n    -> LT.toStrict . LT.toLazyText . Sci.scientificBuilder $ n
+      OtherLit o      -> o
 
 
-defaultSqlQuote :: SqlGenerator -> String -> String
+defaultSqlQuote :: SqlGenerator -> Text -> Text
 defaultSqlQuote _ = quote
 
 -- | Quote a string and escape characters that need escaping
 --   We use Postgres "escape strings", i.e. strings prefixed
 --   with E, to ensure that escaping with backslash is valid.
-quote :: String -> String
-quote s = "E'" ++ concatMap escape s ++ "'"
+quote :: Text -> Text
+quote s = "E'" <> T.concatMap escape s <> "'"
 
 -- | Escape characters that need escaping
-escape :: Char -> String
+escape :: Char -> Text
 escape '\NUL' = "\\0"
 escape '\'' = "''"
 escape '"' = "\\\""
@@ -267,9 +271,9 @@ escape '\n' = "\\n"
 escape '\r' = "\\r"
 escape '\t' = "\\t"
 escape '\\' = "\\\\"
-escape c = [c]
+escape c = singleton c
 
 
 -- | Quote binary literals using Postgresql's hex format.
-binQuote :: ByteString -> String
-binQuote s = "E'\\\\x" ++ BS8.unpack (Base16.encode s) ++ "'"
+binQuote :: ByteString -> Text
+binQuote s = "E'\\\\x" <> (decodeUtf8 . Base16.encode $ s) <> "'"

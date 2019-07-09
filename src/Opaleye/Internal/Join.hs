@@ -1,5 +1,5 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances, MultiParamTypeClasses #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies, OverloadedStrings #-}
 
 module Opaleye.Internal.Join where
 
@@ -17,9 +17,11 @@ import qualified Opaleye.Internal.TypeFamilies as TF
 
 import qualified Control.Applicative as A
 
+import qualified Data.Text as SText
 import           Data.Profunctor (Profunctor, dimap)
 import qualified Data.Profunctor.Product as PP
 import qualified Data.Profunctor.Product.Default as D
+import Data.Semigroup ((<>))
 
 newtype NullMaker a b = NullMaker (a -> b)
 
@@ -91,7 +93,7 @@ extractLeftJoinFields :: Int
                       -> T.Tag
                       -> HPQ.PrimExpr
                       -> PM.PM [(HPQ.Symbol, HPQ.PrimExpr)] HPQ.PrimExpr
-extractLeftJoinFields n = PM.extractAttr ("result" ++ show n ++ "_")
+extractLeftJoinFields n = PM.extractAttr ("result" <> (SText.pack . show) n <> "_")
 
 -- { Boilerplate instances
 

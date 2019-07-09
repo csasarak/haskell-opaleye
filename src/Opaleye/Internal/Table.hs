@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Opaleye.Internal.Table where
 
@@ -22,6 +23,7 @@ import           Data.Monoid (Monoid, mempty, mappend)
 import           Data.Semigroup (Semigroup, (<>))
 import           Control.Applicative (Applicative, pure, (<*>), liftA2)
 import qualified Control.Arrow as Arr
+import Data.Text
 
 -- | Define a table as follows, where \"id\", \"color\", \"location\",
 -- \"quantity\" and \"radius\" are the tables columns in Postgres and
@@ -60,8 +62,8 @@ data Table writerColumns viewColumns
     -- constructor.  It is internal and will be deprecated in version 0.7.
 
 tableIdentifier :: Table writeColumns viewColumns -> PQ.TableIdentifier
-tableIdentifier (Table t _) = PQ.TableIdentifier Nothing t
-tableIdentifier (TableWithSchema s t _) = PQ.TableIdentifier (Just s) t
+tableIdentifier (Table t _) = PQ.TableIdentifier Nothing (pack t)
+tableIdentifier (TableWithSchema s t _) = PQ.TableIdentifier (Just $ pack s) (pack t)
 
 tableColumns :: Table writeColumns viewColumns -> TableFields writeColumns viewColumns
 tableColumns (Table _ p) = p
@@ -111,21 +113,21 @@ data View columns = View columns
 -- column for all the rows.
 newtype Writer columns dummy =
   Writer (forall f. Functor f =>
-          PM.PackMap (f HPQ.PrimExpr, String) () (f columns) ())
+          PM.PackMap (f HPQ.PrimExpr, Text) () (f columns) ())
 
 -- | 'required' is for columns which are not 'optional'.  You must
 -- provide them on writes.
 required :: String -> TableFields (Column a) (Column a)
 required columnName = TableProperties
-  (requiredW columnName)
-  (View (Column (HPQ.BaseTableAttrExpr columnName)))
+  (requiredW $ pack columnName)
+  (View (Column (HPQ.BaseTableAttrExpr (pack columnName))))
 
 -- | 'optional' is for columns that you can omit on writes, such as
 --  columns which have defaults or which are SERIAL.
 optional :: String -> TableFields (Maybe (Column a)) (Column a)
 optional columnName = TableProperties
-  (optionalW columnName)
-  (View (Column (HPQ.BaseTableAttrExpr columnName)))
+  (optionalW $ pack columnName)
+  (View (Column (HPQ.BaseTableAttrExpr (pack columnName))))
 
 class TableColumn writeType sqlType | writeType -> sqlType where
     -- | Do not use.  Use 'tableField' instead.  Will be deprecated in
@@ -164,12 +166,12 @@ runColumnMaker cm tag tableCols = PM.run (U.runUnpackspec cm f tableCols) where
   -- 'ViewColumnMaker' so could only arise from an fmap (if we
   -- implemented a Functor instance) or a direct manipulation of the
   -- tablecols contained in the View (which would be naughty)
-  mkName pe i = (++ i) $ case pe of
+  mkName pe i = (<> i) $ case pe of
     HPQ.BaseTableAttrExpr columnName -> columnName
-    HPQ.CompositeExpr columnExpr fieldName -> mkName columnExpr i ++ fieldName
+    HPQ.CompositeExpr columnExpr fieldName -> mkName columnExpr i <> fieldName
     _ -> "tablecolumn"
 
-runWriter :: Writer columns columns' -> columns -> [(HPQ.PrimExpr, String)]
+runWriter :: Writer columns columns' -> columns -> [(HPQ.PrimExpr, Text)]
 runWriter (Writer (PM.PackMap f)) columns = outColumns
   where (outColumns, ()) = f extract (I.Identity columns)
         extract (pes, s) = ([(I.runIdentity pes, s)], ())
@@ -180,7 +182,7 @@ runWriter (Writer (PM.PackMap f)) columns = outColumns
 --    x == (,) <$> fmap fst x <*> fmap snd x
 --
 -- However, I'm unaware of a typeclass for this.
-runWriter' :: Writer columns columns' -> NEL.NonEmpty columns -> (NEL.NonEmpty [HPQ.PrimExpr], [String])
+runWriter' :: Writer columns columns' -> NEL.NonEmpty columns -> (NEL.NonEmpty [HPQ.PrimExpr], [Text])
 runWriter' (Writer (PM.PackMap f)) columns = Arr.first unZip outColumns
   where (outColumns, ()) = f extract columns
         extract (pes, s) = ((Zip (fmap return pes), [s]), ())
@@ -195,11 +197,11 @@ instance Monoid (Zip a) where
     where mempty' = [] `NEL.cons` mempty'
   mappend = (<>)
 
-requiredW :: String -> Writer (Column a) (Column a)
+requiredW :: Text -> Writer (Column a) (Column a)
 requiredW columnName =
   Writer (PM.iso (flip (,) columnName . fmap unColumn) id)
 
-optionalW :: String -> Writer (Maybe (Column a)) (Column a)
+optionalW :: Text -> Writer (Maybe (Column a)) (Column a)
 optionalW columnName =
   Writer (PM.iso (flip (,) columnName . fmap maybeUnColumn) id)
   where maybeUnColumn = maybe HPQ.DefaultInsertExpr unColumn

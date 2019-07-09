@@ -81,6 +81,7 @@ module Opaleye.Table (-- * Defining tables
                       -- * Module reexport
                       module Opaleye.Table) where
 
+import qualified Data.Text as SText
 import qualified Opaleye.Internal.QueryArr as Q
 import qualified Opaleye.Internal.Table as T
 import           Opaleye.Internal.Table (View, Table, Writer,
@@ -118,7 +119,7 @@ table :: String
       -- ^ Table name
       -> TableFields writeFields viewFields
       -> Table writeFields viewFields
-table = T.Table
+table s = T.Table s
 
 -- | Define a table with a qualified name.
 tableWithSchema :: String
@@ -127,7 +128,7 @@ tableWithSchema :: String
                 -- ^ Table name
                 -> TableFields writeFields viewFields
                 -> Table writeFields viewFields
-tableWithSchema = T.TableWithSchema
+tableWithSchema sc t = T.TableWithSchema sc t
 
 -- * Explicit versions
 

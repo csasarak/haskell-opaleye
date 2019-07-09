@@ -12,6 +12,7 @@ import           Data.Profunctor (Profunctor, dimap, rmap)
 import           Data.Profunctor.Product (ProductProfunctor, empty, (***!))
 import qualified Data.Profunctor.Product as PP
 import qualified Data.Functor.Identity as I
+import Data.Text
 
 -- This is rather like a Control.Lens.Traversal with the type
 -- parameters switched but I'm not sure if it should be required to
@@ -64,11 +65,11 @@ overPM p f = I.runIdentity . traversePM p (I.Identity . f)
 -- | A helpful monad for writing columns in the AST
 type PM a = State.State (a, Int)
 
-new :: PM a String
+new :: PM a Text
 new = do
   (a, i) <- State.get
   State.put (a, i + 1)
-  return (show i)
+  return (pack . show $ i)
 
 write :: a -> PM [a] ()
 write a = do
@@ -91,7 +92,7 @@ run m = (r, as)
 --
 -- Add the fresh name and the input value it refers to to the list in
 -- the state parameter.
-extractAttrPE :: (primExpr -> String -> String) -> T.Tag -> primExpr
+extractAttrPE :: (primExpr -> Text -> Text) -> T.Tag -> primExpr
                -> PM [(HPQ.Symbol, primExpr)] HPQ.PrimExpr
 extractAttrPE mkName t pe = do
   i <- new
@@ -101,9 +102,9 @@ extractAttrPE mkName t pe = do
 
 -- | As 'extractAttrPE' but ignores the 'primExpr' when making the
 -- fresh column name and just uses the supplied 'String' and 'T.Tag'.
-extractAttr :: String -> T.Tag -> primExpr
+extractAttr :: Text -> T.Tag -> primExpr
                -> PM [(HPQ.Symbol, primExpr)] HPQ.PrimExpr
-extractAttr s = extractAttrPE (const (s ++))
+extractAttr s = extractAttrPE (const (s <>))
 
 -- }
 

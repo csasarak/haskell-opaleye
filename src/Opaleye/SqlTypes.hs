@@ -26,7 +26,7 @@ import qualified Database.PostgreSQL.Simple.Range as R
 -- * Creating SQL values
 
 sqlString :: String -> F.Field SqlText
-sqlString = P.pgString
+sqlString = P.pgString . SText.pack
 
 sqlLazyByteString :: LByteString.ByteString -> F.Field SqlBytea
 sqlLazyByteString = P.pgLazyByteString
@@ -88,7 +88,7 @@ sqlCiLazyText = P.pgCiLazyText
 -- The json data type was introduced in PostgreSQL version 9.2
 -- JSON values must be SQL string quoted
 sqlJSON :: String -> F.Field SqlJson
-sqlJSON = P.pgJSON
+sqlJSON = P.pgJSON . SText.pack
 
 sqlStrictJSON :: SByteString.ByteString -> F.Field SqlJson
 sqlStrictJSON = P.pgStrictJSON
@@ -105,7 +105,7 @@ sqlValueJSON = P.pgValueJSON
 -- TODO: We need to add literal JSON and JSONB types so we can say
 -- `castToTypeTyped JSONB` rather than `castToType "jsonb"`.
 sqlJSONB :: String -> F.Field SqlJsonb
-sqlJSONB = P.pgJSONB
+sqlJSONB = P.pgJSONB . SText.pack
 
 sqlStrictJSONB :: SByteString.ByteString -> F.Field SqlJsonb
 sqlStrictJSONB = P.pgStrictJSONB

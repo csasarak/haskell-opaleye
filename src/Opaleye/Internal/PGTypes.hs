@@ -16,31 +16,31 @@ import qualified Data.ByteString.Lazy as LByteString
 import qualified Data.Time as Time
 import qualified Data.Time.Locale.Compat as Locale
 
-unsafePgFormatTime :: Time.FormatTime t => HPQ.Name -> String -> t -> Column c
+unsafePgFormatTime :: Time.FormatTime t => HPQ.Name -> SText.Text -> t -> Column c
 unsafePgFormatTime typeName formatString = castToType typeName . format
-  where format = Time.formatTime Locale.defaultTimeLocale formatString
+  where format = SText.pack . Time.formatTime Locale.defaultTimeLocale (SText.unpack formatString)
 
 literalColumn :: forall a. IsSqlType a => HPQ.Literal -> Column a
 literalColumn = Column . HPQ.CastExpr (showSqlType (Proxy :: Proxy a)) . HPQ.ConstExpr
 
-castToType :: HPQ.Name -> String -> Column c
+castToType :: HPQ.Name -> SText.Text -> Column c
 castToType typeName =
     Column . HPQ.CastExpr typeName . HPQ.ConstExpr . HPQ.OtherLit
 
-strictDecodeUtf8 :: SByteString.ByteString -> String
-strictDecodeUtf8 = SText.unpack . STextEncoding.decodeUtf8
+strictDecodeUtf8 :: SByteString.ByteString -> SText.Text
+strictDecodeUtf8 = STextEncoding.decodeUtf8
 
-lazyDecodeUtf8 :: LByteString.ByteString -> String
-lazyDecodeUtf8 = LText.unpack . LTextEncoding.decodeUtf8
+lazyDecodeUtf8 :: LByteString.ByteString -> LText.Text
+lazyDecodeUtf8 = LTextEncoding.decodeUtf8
 
 {-# DEPRECATED showPGType
     "Use 'showSqlType' instead. 'showPGType' will be removed \
     \in version 0.7." #-}
 class IsSqlType sqlType where
-  showPGType :: proxy sqlType -> String
+  showPGType :: proxy sqlType -> SText.Text
   showPGType  = showSqlType
 
-  showSqlType :: proxy sqlType -> String
+  showSqlType :: proxy sqlType -> SText.Text
   showSqlType = showPGType
 
   {-# MINIMAL showPGType | showSqlType #-}

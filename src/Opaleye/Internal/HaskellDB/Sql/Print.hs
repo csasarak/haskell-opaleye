@@ -2,7 +2,7 @@
 --                HWT Group (c) 2003, haskelldb-users@lists.sourceforge.net
 -- License     :  BSD-style
 
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE LambdaCase,OverloadedStrings #-}
 
 module Opaleye.Internal.HaskellDB.Sql.Print (
                                      deliteral,
@@ -26,6 +26,7 @@ import Opaleye.Internal.HaskellDB.Sql (SqlColumn(..), SqlDelete(..),
                                OnConflict(..), Doc)
 import qualified Opaleye.Internal.HaskellDB.Sql as Sql
 
+import Data.Text hiding (map, empty, intersperse)
 import Data.List (intersperse)
 import qualified Data.List.NonEmpty as NEL
 import Data.Text.Prettyprint.Doc ((<+>), (<>), comma, dquotes,
@@ -42,7 +43,7 @@ empty :: Monoid m => m
 empty = mempty
 
 -- these decrease the diff size, but aren't strictly necessary for new code
-text :: (Pretty a) => a -> Doc
+text :: Text -> Doc
 text = pretty
 
 doubleQuotes :: Doc -> Doc
@@ -94,7 +95,7 @@ ppSqlDistinct :: Sql.SqlDistinct -> Doc
 ppSqlDistinct Sql.SqlDistinct = text "DISTINCT"
 ppSqlDistinct Sql.SqlNotDistinct = empty
 
-ppAs :: Maybe String -> Doc -> Doc
+ppAs :: Maybe Text -> Doc -> Doc
 ppAs Nothing      expr = expr
 ppAs (Just alias) expr = expr <+> hsep [text "as", doubleQuotes (text alias)]
 
@@ -143,7 +144,7 @@ ppTable st = case sqlTableSchemaName st of
 
 data InclusiveExclusive = Inclusive' | Exclusive'
 
-ppRange :: String -> SqlRangeBound -> SqlRangeBound -> Doc
+ppRange :: Text -> SqlRangeBound -> SqlRangeBound -> Doc
 ppRange t start end =
   ppSqlExpr (FunSqlExpr t [ startValue
                           , endValue
@@ -167,7 +168,7 @@ ppRange t start end =
           Inclusive' -> "]"
           Exclusive' -> ")"
 
-        boundTypeSymbol = "'" ++ startTypeSymbol ++ endTypeSymbol ++ "'"
+        boundTypeSymbol = "'" <> startTypeSymbol <> endTypeSymbol <> "'"
 
 ppSqlExpr :: SqlExpr -> Doc
 ppSqlExpr expr =
